@@ -1,144 +1,54 @@
-# Simple Chat Example
-> Built with the [Phoenix Framework](https://github.com/phoenixframework/phoenix)
+# Twitter Simulator Using Phoenix
+Supraba Muruganantham [UFID : 9215-9813], Pradosa Patnaik [UFID: 1288-9584]
 
-To start your new Phoenix application you have to:
+# Twitter simulator
 
-1. Clone this repo, then cd to the new directory
-2. Install dependencies with `mix deps.get`
-3. (optional) Install npm dependencies to customize the ES6 js/Sass `npm install`
-4. Start Phoenix router with `mix phoenix.server`
-
-Now you can visit `localhost:4000` from your browser.
-
-## Live Demo
-http://phoenixchat.herokuapp.com
+In this project we simulate a twitter clone and a multiple twitter client in Elixir that has JSON based Phoenix WebSockets API for client-server communication. 
+The Application is a simulator for twitter like application with the capability of 
+1.login
+2.Follow
+2.tweet
+3.retweet
+4.Search for tweets/Hashtags/Mentions
 
 
-## Example Code
+# Twitter engine:
+Twitter engine is the main server of twitter which does the following operatins:
+1. Saves the login information of a user.
+2. Authenticates when a user logs in.
+3. Keeps track of followers of each user.
+4. Keeps track of follwed users for each user.
+5. sends the tweets to all the follwer of a tweeting user in real time.
+6. Sends the retweets to the follwers.
+7. processes the search query for tweets/Hashtags/Mentions and sends the result to the requesting clients.
 
-#### JavaScript
-```javascript
-import {Socket, LongPoller} from "phoenix"
+# Twitter clients:
+Twitter client simulates the behaviour of a twitter user and does the following operation:
+1. Signs in with Twitter.
+2. follows other users.
+3. Tweets messages containing HashTags/Mentions.
+4. Retweets if he likes a tweet from the follwed users.
+5. Searches for specific tweets, Hashtags or mentions.
+6. Clients can go online/offline.
 
-class App {
 
-  static init(){
-    let socket = new Socket("/socket", {
-      logger: ((kind, msg, data) => { console.log(`${kind}: ${msg}`, data) })
-    })
+# How to run?
+To run the Twitter simulator, follow the below instructions:
+1. Start the Phoenix server:
+$ mix phoenix.server
+2. Run the endpoint by using:
+   http://localhost:4001
+3. Enter the number of users to simulate and press enter
 
-    socket.connect({user_id: "123"})
-    var $status    = $("#status")
-    var $messages  = $("#messages")
-    var $input     = $("#message-input")
-    var $username  = $("#username")
+Twitter simulation will be with the specified number of users. The UI shows the
+activity log of twitter by presenting the number of users available online, the total
+count tweets tweeted, retweeted and the number of serch queries made.
+Approach:
 
-    socket.onOpen( ev => console.log("OPEN", ev) )
-    socket.onError( ev => console.log("ERROR", ev) )
-    socket.onClose( e => console.log("CLOSE", e))
 
-    var chan = socket.channel("rooms:lobby", {})
-    chan.join().receive("ignore", () => console.log("auth error"))
-               .receive("ok", () => console.log("join ok"))
-               .after(10000, () => console.log("Connection interruption"))
-    chan.onError(e => console.log("something went wrong", e))
-    chan.onClose(e => console.log("channel closed", e))
+# Implementation details
+We are using Phoenix’s Sockets to communicate with the engine (Server) from clients
+Sockets internally using web‐sockets and transfers data in JSON format.
 
-    $input.off("keypress").on("keypress", e => {
-      if (e.keyCode == 13) {
-        chan.push("new:msg", {user: $username.val(), body: $input.val()})
-        $input.val("")
-      }
-    })
 
-    chan.on("new:msg", msg => {
-      $messages.append(this.messageTemplate(msg))
-      scrollTo(0, document.body.scrollHeight)
-    })
-
-    chan.on("user:entered", msg => {
-      var username = this.sanitize(msg.user || "anonymous")
-      $messages.append(`<br/><i>[${username} entered]</i>`)
-    })
-  }
-
-  static sanitize(html){ return $("<div/>").text(html).html() }
-
-  static messageTemplate(msg){
-    let username = this.sanitize(msg.user || "anonymous")
-    let body     = this.sanitize(msg.body)
-
-    return(`<p><a href='#'>[${username}]</a>&nbsp; ${body}</p>`)
-  }
-
-}
-
-$( () => App.init() )
-
-export default App
- ```
-
-#### Endpoint
-```elixir
-# lib/chat/endpoint.ex
-defmodule Chat.Endpoint do
-  use Phoenix.Endpoint
-
-  socket "/socket", Chat.UserSocket
-  ...
-end
-```
-
-#### Socket
-```elixir
-# web/channels/user_socket.ex
-defmodule Chat.UserSocket do
-  use Phoenix.Socket
-
-  channel "rooms:*", Chat.RoomChannel
-
-  transport :websocket, Phoenix.Transports.WebSocket
-  transport :longpoll, Phoenix.Transports.LongPoll
-  ...
-end
-```
-
-#### Channel
-```elixir
-defmodule Chat.RoomChannel do
-  use Phoenix.Channel
-  require Logger
-
-  def join("rooms:lobby", message, socket) do
-    Process.flag(:trap_exit, true)
-    :timer.send_interval(5000, :ping)
-    send(self, {:after_join, message})
-
-    {:ok, socket}
-  end
-
-  def join("rooms:" <> _private_subtopic, _message, _socket) do
-    {:error, %{reason: "unauthorized"}}
-  end
-
-  def handle_info({:after_join, msg}, socket) do
-    broadcast! socket, "user:entered", %{user: msg["user"]}
-    push socket, "join", %{status: "connected"}
-    {:noreply, socket}
-  end
-  def handle_info(:ping, socket) do
-    push socket, "new:msg", %{user: "SYSTEM", body: "ping"}
-    {:noreply, socket}
-  end
-
-  def terminate(reason, _socket) do
-    Logger.debug"> leave #{inspect reason}"
-    :ok
-  end
-
-  def handle_in("new:msg", msg, socket) do
-    broadcast! socket, "new:msg", %{user: msg["user"], body: msg["body"]}
-    {:reply, {:ok, %{msg: msg["body"]}}, assign(socket, :user, msg["user"])}
-  end
-end
-```
+Demo video : https://youtu.be/KzSCe1CRo7k
